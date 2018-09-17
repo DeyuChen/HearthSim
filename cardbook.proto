@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package cardbook;
+
+message Effect {
+    enum EffectType {
+        Deal_damage = 0;
+        Restore_health = 1;
+        Destroy_weapon = 2;
+        Summon = 3;
+        Draw = 4;
+        Buff = 5;
+    }
+
+    EffectType type = 1;
+    repeated int32 args = 2;
+}
+
+message Minion {
+    int32 att = 1;
+    int32 max_hp = 2;
+    int32 hp = 3;
+    bool active = 4;
+
+    enum Race {
+        NONE = 0;
+        MECH = 1;
+        DEMON = 2;
+    }
+
+    Race race = 5;
+    bool taunt = 6;
+    bool wind = 7;
+    bool lifesteal = 8;
+
+    repeated Effect battlecry = 9;
+    repeated Effect deathrattle = 10;
+    repeated Effect enchant = 11;
+}
+
+message Spell {
+}
+
+message Weapon {
+    int32 att = 1;
+    int32 durability = 2;
+}
+
+message Hero {
+    int32 att = 1;
+    int32 max_hp = 2;
+    int32 hp = 3;
+    bool active = 4;
+
+    repeated Effect battlecry = 9;
+}
+
+message Card {
+    int32 id = 1;
+
+    enum CardType {
+        MINION = 0;
+        SPELL = 1;
+        WEAPON = 2;
+        HERO = 3;
+    }
+    
+    CardType type = 2;
+    int32 cost = 3;
+    string name = 4;
+    string description = 5;
+
+    oneof ext {
+        Minion minion = 6;
+        Spell spell = 7;
+        Weapon weapon = 8;
+        Hero hero = 9;
+    }
+}
+
+message CardBook {
+    repeated Card cards = 1;
+}

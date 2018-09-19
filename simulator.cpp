@@ -28,36 +28,17 @@ int main(){
     }
     
     vector<cardbook::Card*> cards;
-    for (int i = 2; i < 32; i++){
+    for (int i = 3; i < 33; i++){
         cards.push_back(generate_card(cardbook, i));
     }
-    Player p1(generate_card(cardbook, 0), cards);
-    for (int i = 2; i < 32; i++){
+    Player p1(generate_card(cardbook, 1), cards);
+    for (int i = 3; i < 33; i++){
         cards.push_back(generate_card(cardbook, i));
     }
-    Player p2(generate_card(cardbook, 1), cards);
-
-    /*
-    vector<Card*> card_list;
-    vector<int> args = {0, 3};
-
-    for (int i = 0; i < 30; i++){
-        card_list.push_back(new Minion(i, 1, "test", 1, 1));
-        if (i < 10)
-            dynamic_cast<Minion*>(card_list.back())->battlecry.push_back(Effect(Deal_damage, args));
-    }
-    Player p1(new Hero(0, 0, "Mage", 30), card_list);
-    
-    for (int i = 0; i < 30; i++){
-        card_list.push_back(new Minion(i, 1, "test", 1, 1));
-        if (i < 10)
-            dynamic_cast<Minion*>(card_list.back())->battlecry.push_back(Effect(Deal_damage, args));
-    }
-    Player p2(new Hero(0, 0, "Warrior", 30), card_list);
-    */
+    Player p2(generate_card(cardbook, 2), cards);
 
     vector<Player> player = {p1, p2};
-    Game game(player);
+    Game game(player, cardbook);
     
     while (!game.end)
         game.player_turn();

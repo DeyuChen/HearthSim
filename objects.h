@@ -48,9 +48,10 @@ private:
 
 class Game {
 public:
-    Game(vector<Player> &player);
+    Game(vector<Player> &player, cardbook::CardBook &cardbook);
     void print();
     void show();
+    cardbook::Card* generate_card(int id);
     void player_turn();
     void to_field(Player &p, cardbook::Card* card, int i);
     void play();
@@ -58,14 +59,19 @@ public:
     void restore(Player &p, int i, int v);
     bool check_valid_attack_target(Player &p, int i);
     void attack();
+    void power();
 
     bool effect_deal_damage(Target t, int v);
     bool effect_restore_health(Target t, int v);
+    bool effect_gain_armor(int i, int v);
     bool effect_destroy_weapon(int i);
-    bool effect_destroy_weapon(int i, int v);
+    bool effect_draw(int i, int v);
+    bool effect_gain_mana(int i, int v);
+    bool effect_gain_max_mana(int i, int v);
     bool take_effect(cardbook::Effect *eff);
 
     vector<Player> &player;
+    cardbook::CardBook &cardbook;
     bool end = false;
 };
 

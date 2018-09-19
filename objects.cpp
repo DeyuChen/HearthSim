@@ -13,6 +13,8 @@ void print_card(cardbook::Card* card){
 
         case cardbook::Card::HERO:
             cout << "HP : " << card->mutable_hero()->hp() << "/" << card->mutable_hero()->max_hp() << endl;
+            if (card->mutable_hero()->armor())
+                cout << "armor : " << card->mutable_hero()->armor() << endl;
             break;
     }
 }
@@ -76,6 +78,9 @@ bool Player::action(){
     else if (input == "attack"){
         game->attack();
     }
+    else if (input == "power"){
+        game->power();
+    }
 
     if (game->end)
         return false;
@@ -85,6 +90,8 @@ bool Player::action(){
 void Player::start_turn(){
     mana = ++max_mana;
     draw();
+    hero->mutable_hero()->set_active(true);
+    hero->mutable_hero()->set_power_used(false);
     for (auto m : field){
         m->mutable_minion()->set_active(true);
     }
@@ -113,8 +120,8 @@ void Player::init_deck(vector<cardbook::Card*> &cards){
     }
 }
 
-Game::Game(vector<Player> &player) :
-    player(player)
+Game::Game(vector<Player> &player, cardbook::CardBook &cardbook) :
+    player(player), cardbook(cardbook)
 {
     player[0].game = player[1].game = this;
     if (rand() % 2)
@@ -125,6 +132,7 @@ Game::Game(vector<Player> &player) :
         player[1].draw();
     }
     player[1].draw();
+    player[1].hand.push_back(generate_card(0));
 }
 
 void Game::print(){
@@ -141,6 +149,12 @@ void Game::show(){
     cout << "--------------------" << endl;
     cout << endl << "Player1:" << endl;
     player[0].print();
+}
+
+cardbook::Card* Game::generate_card(int id){
+    cardbook::Card *card = new cardbook::Card();
+    card->CopyFrom(cardbook.cards(id));
+    return card;
 }
 
 void Game::player_turn(){
@@ -197,6 +211,14 @@ void Game::play(){
 
             break;
 
+        case cardbook::Card::SPELL:
+            for (int id = 0; id < card_to_play->mutable_spell()->effect_size(); id++){
+                if (!take_effect(card_to_play->mutable_spell()->mutable_effect(id)))
+                    return;
+            }
+
+            break;
+
         default:
             cerr << "unknown card type" << endl;
     }
@@ -208,9 +230,16 @@ void Game::play(){
 void Game::damage(Player &p, int i, int v){
     if (i == -1){
         cardbook::Hero *hero = p.hero->mutable_hero();
-        hero->set_hp(hero->hp() - v);
-        if (hero->hp() <= 0)
-            end = true;
+        if (hero->armor() >= v){
+            hero->set_armor(hero->armor() - v);
+        }
+        else {
+            v -= hero->armor();
+            hero->set_armor(0);
+            hero->set_hp(hero->hp() - v);
+            if (hero->hp() <= 0)
+                end = true;
+        }
     }
     else {
         cardbook::Minion *minion = p.field[i]->mutable_minion();
@@ -264,7 +293,11 @@ void Game::attack(){
     cardbook::Minion *attacker = player[0].field[i]->mutable_minion();
 
     if (!attacker->active()){
-        cerr << "character is not active" << endl;
+        cerr << "attacker is not active" << endl;
+        return;
+    }
+    if (attacker->att() <= 0){
+        cerr << "attacker does not have positive attack" << endl;
         return;
     }
 
@@ -280,6 +313,26 @@ void Game::attack(){
     damage(player[1], j, d1);
 
     attacker->set_active(false);
+}
+
+void Game::power(){
+    cardbook::Hero *hero = player[0].hero->mutable_hero();
+    if (hero->power_used()){
+        cerr << "power is already used this turn" << endl;
+        return;
+    }
+    if (hero->power_cost() > player[0].mana){
+        cerr << "not enough mana" << endl;
+        return;
+    }
+
+    for (int id = 0; id < hero->power_size(); id++){
+        if (!take_effect(hero->mutable_power(id)))
+            return;
+    }
+
+    player[0].mana -= hero->power_cost();
+    hero->set_power_used(true);
 }
 
 bool Game::effect_deal_damage(Target t, int v){
@@ -342,6 +395,15 @@ bool Game::effect_restore_health(Target t, int v){
     }
 }
 
+bool Game::effect_gain_armor(int i, int v){
+    if (i != 0 && i != 1)
+        return false;
+        
+    cardbook::Hero *hero = player[i].hero->mutable_hero();
+    hero->set_armor(hero->armor() + v);
+    return true;
+}
+
 bool Game::effect_destroy_weapon(int i){
     if (player[i].weapon){
         player[i].discard.push_back(player[i].weapon);
@@ -350,10 +412,20 @@ bool Game::effect_destroy_weapon(int i){
     return true;
 }
 
-bool Game::effect_destroy_weapon(int i, int v){
+bool Game::effect_draw(int i, int v){
     for (int n = 0; n < v; n++){
         player[i].draw();
     }
+    return true;
+}
+
+bool Game::effect_gain_mana(int i, int v){
+    player[i].mana = min(player[i].mana + v, 10);
+    return true;
+}
+
+bool Game::effect_gain_max_mana(int i, int v){
+    player[i].max_mana = min(player[i].max_mana + v, 10);
     return true;
 }
 
@@ -367,6 +439,10 @@ bool Game::take_effect(cardbook::Effect *eff){
             return effect_restore_health(static_cast<Target>(eff->args(0)), eff->args(1));
             break;
 
+        case cardbook::Effect::Gain_armor:
+            return effect_gain_armor(eff->args(0), eff->args(1));
+            break;
+
         case cardbook::Effect::Destroy_weapon:
             return effect_destroy_weapon(eff->args(0));
             break;
@@ -375,10 +451,18 @@ bool Game::take_effect(cardbook::Effect *eff){
             break;
 
         case cardbook::Effect::Draw:
-            return effect_destroy_weapon(eff->args(0), eff->args(1));
+            return effect_draw(eff->args(0), eff->args(1));
             break;
 
         case cardbook::Effect::Buff:
+            break;
+
+        case cardbook::Effect::Gain_mana:
+            return effect_gain_mana(eff->args(0), eff->args(1));
+            break;
+
+        case cardbook::Effect::Gain_max_mana:
+            return effect_gain_max_mana(eff->args(0), eff->args(1));
             break;
 
         default:

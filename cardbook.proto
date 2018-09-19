@@ -6,10 +6,13 @@ message Effect {
     enum EffectType {
         Deal_damage = 0;
         Restore_health = 1;
-        Destroy_weapon = 2;
-        Summon = 3;
-        Draw = 4;
-        Buff = 5;
+        Gain_armor = 2;
+        Destroy_weapon = 3;
+        Summon = 4;
+        Draw = 5;
+        Buff = 6;
+        Gain_mana = 7;
+        Gain_max_mana = 8;
     }
 
     EffectType type = 1;
@@ -39,6 +42,7 @@ message Minion {
 }
 
 message Spell {
+    repeated Effect effect = 1;
 }
 
 message Weapon {
@@ -50,8 +54,12 @@ message Hero {
     int32 att = 1;
     int32 max_hp = 2;
     int32 hp = 3;
-    bool active = 4;
+    int32 armor = 4;
+    bool active = 5;
+    int32 power_cost = 6;
+    bool power_used = 7;
 
+    repeated Effect power = 8;    
     repeated Effect battlecry = 9;
 }
 

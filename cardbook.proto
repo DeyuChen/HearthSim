@@ -11,20 +11,17 @@ message Effect {
         Summon = 4;
         Draw = 5;
         Buff = 6;
-        Gain_mana = 7;
-        Gain_max_mana = 8;
+        Turn_buff = 7;
+        Gain_mana = 8;
+        Gain_max_mana = 9;
     }
 
     EffectType type = 1;
     repeated int32 args = 2;
 }
 
+/*
 message Minion {
-    int32 att = 1;
-    int32 max_hp = 2;
-    int32 hp = 3;
-    bool active = 4;
-
     enum Race {
         NONE = 0;
         MECH = 1;
@@ -35,11 +32,21 @@ message Minion {
     bool taunt = 6;
     bool wind = 7;
     bool lifesteal = 8;
+    bool rush = 9;
 
-    repeated Effect battlecry = 9;
-    repeated Effect deathrattle = 10;
-    repeated Effect enchant = 11;
+    repeated Effect deathrattle = 11;
+    repeated Effect enchant = 12;
 }
+
+message Hero {
+    int32 armor = 4;
+    int32 power_cost = 6;
+    bool power_used = 7;
+
+    repeated Effect power = 8;    
+    repeated Effect battlecry = 9;
+}
+*/
 
 message Spell {
     repeated Effect effect = 1;
@@ -50,17 +57,39 @@ message Weapon {
     int32 durability = 2;
 }
 
-message Hero {
+message Character {
     int32 att = 1;
     int32 max_hp = 2;
     int32 hp = 3;
-    int32 armor = 4;
-    bool active = 5;
-    int32 power_cost = 6;
-    bool power_used = 7;
+    bool active = 4;
+    int32 att_mod = 5;
+    int32 hp_mod = 6;
+    int32 att_turn_mod = 7;
+    
+    repeated Effect battlecry = 8;
+    repeated Effect enchant = 9;
+    
+    /* Minion */
+    bool taunt = 10;
+    bool wind = 11;
+    bool lifesteal = 12;
+    bool rush = 13;
+    
+    enum Race {
+        NONE = 0;
+        MECH = 1;
+        DEMON = 2;
+    }
+    
+    Race race = 14;
+    repeated Effect deathrattle = 15;
+    
+    /* Hero */
+    int32 armor = 16;
+    int32 power_cost = 17;
+    bool power_used = 18;
 
-    repeated Effect power = 8;    
-    repeated Effect battlecry = 9;
+    repeated Effect power = 19;
 }
 
 message Card {
@@ -73,16 +102,29 @@ message Card {
         HERO = 3;
     }
     
+    enum CardClass {
+        NEUTRAL = 0;
+        DRUID = 1;
+        HUNTER = 2;
+        MAGE = 3;
+        PALADIN = 4;
+        PRIEST = 5;
+        ROGUE = 6;
+        SHAMAN = 7;
+        WARLOCK = 8;
+        WARRIOR = 9;
+    }
+    
     CardType type = 2;
-    int32 cost = 3;
-    string name = 4;
-    string description = 5;
+    CardClass class = 3;
+    int32 cost = 4;
+    string name = 5;
+    string description = 6;
 
     oneof ext {
-        Minion minion = 6;
-        Spell spell = 7;
-        Weapon weapon = 8;
-        Hero hero = 9;
+        Character character = 7;
+        Spell spell = 8;
+        Weapon weapon = 9;
     }
 }
 

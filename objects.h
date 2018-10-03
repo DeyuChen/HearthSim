@@ -17,7 +17,8 @@ class Player;
 class Game;
 
 enum Target {
-    Any_character = 0
+    Any_character = 0,
+    Own_hero
 };
 
 class Player {
@@ -57,15 +58,18 @@ public:
     void play();
     void damage(Player &p, int i, int v);
     void restore(Player &p, int i, int v);
+    void turn_buff(Player &p, int i, int v1, int v2);
     bool check_valid_attack_target(Player &p, int i);
     void attack();
     void power();
 
+    bool choose_target(int &i, int &j);
     bool effect_deal_damage(Target t, int v);
     bool effect_restore_health(Target t, int v);
     bool effect_gain_armor(int i, int v);
     bool effect_destroy_weapon(int i);
     bool effect_draw(int i, int v);
+    bool effect_turn_buff(Target t, int v1, int v2);
     bool effect_gain_mana(int i, int v);
     bool effect_gain_max_mana(int i, int v);
     bool take_effect(cardbook::Effect *eff);

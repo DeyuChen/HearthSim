@@ -17,12 +17,12 @@ card.id = 1
 card.type = cardbook_pb2.Card.HERO
 card.cost = 0;
 card.name = "Mage"
-card.hero.att = 0
-card.hero.max_hp = 30
-card.hero.hp = 30
-card.hero.armor = 0
-card.hero.power_cost = 2
-power = card.hero.power.add()
+card.character.att = 0
+card.character.max_hp = 30
+card.character.hp = 30
+card.character.armor = 0
+card.character.power_cost = 2
+power = card.character.power.add()
 power.type = cardbook_pb2.Effect.Deal_damage
 power.args.append(0)
 power.args.append(1)
@@ -32,12 +32,12 @@ card.id = 2
 card.type = cardbook_pb2.Card.HERO
 card.cost = 1;
 card.name = "Warrior"
-card.hero.att = 0
-card.hero.max_hp = 30
-card.hero.hp = 30
-card.hero.armor = 0
-card.hero.power_cost = 2
-power = card.hero.power.add()
+card.character.att = 0
+card.character.max_hp = 30
+card.character.hp = 30
+card.character.armor = 0
+card.character.power_cost = 2
+power = card.character.power.add()
 power.type = cardbook_pb2.Effect.Gain_armor
 power.args.append(0)
 power.args.append(2)
@@ -48,11 +48,11 @@ for i in range(3, 33):
     card.type = cardbook_pb2.Card.MINION
     card.cost = 1;
     card.name = "test"
-    card.minion.att = 1
-    card.minion.max_hp = 1
-    card.minion.hp = 1
+    card.character.att = 1
+    card.character.max_hp = 1
+    card.character.hp = 1
     if i < 10:
-        effect = card.minion.battlecry.add()
+        effect = card.character.battlecry.add()
         effect.type = cardbook_pb2.Effect.Deal_damage
         effect.args.append(0)
         effect.args.append(3)

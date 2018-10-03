@@ -8,13 +8,13 @@ void print_card(cardbook::Card* card){
 
     switch (card->type()){
         case cardbook::Card::MINION:
-            cout << "HP : " << card->mutable_minion()->hp() << "/" << card->mutable_minion()->max_hp() << endl;
+            cout << "HP : " << card->mutable_character()->hp() << "/" << card->mutable_character()->max_hp() << endl;
             break;
 
         case cardbook::Card::HERO:
-            cout << "HP : " << card->mutable_hero()->hp() << "/" << card->mutable_hero()->max_hp() << endl;
-            if (card->mutable_hero()->armor())
-                cout << "armor : " << card->mutable_hero()->armor() << endl;
+            cout << "HP : " << card->mutable_character()->hp() << "/" << card->mutable_character()->max_hp() << endl;
+            if (card->mutable_character()->armor())
+                cout << "armor : " << card->mutable_character()->armor() << endl;
             break;
     }
 }
@@ -90,10 +90,10 @@ bool Player::action(){
 void Player::start_turn(){
     mana = ++max_mana;
     draw();
-    hero->mutable_hero()->set_active(true);
-    hero->mutable_hero()->set_power_used(false);
+    hero->mutable_character()->set_active(true);
+    hero->mutable_character()->set_power_used(false);
     for (auto m : field){
-        m->mutable_minion()->set_active(true);
+        m->mutable_character()->set_active(true);
     }
 }
 
@@ -202,8 +202,8 @@ void Game::play(){
                 return;
             }
 
-            for (int id = 0; id < card_to_play->mutable_minion()->battlecry_size(); id++){
-                if (!take_effect(card_to_play->mutable_minion()->mutable_battlecry(id)))
+            for (int id = 0; id < card_to_play->mutable_character()->battlecry_size(); id++){
+                if (!take_effect(card_to_play->mutable_character()->mutable_battlecry(id)))
                     return;
             }
 
@@ -229,7 +229,7 @@ void Game::play(){
 
 void Game::damage(Player &p, int i, int v){
     if (i == -1){
-        cardbook::Hero *hero = p.hero->mutable_hero();
+        cardbook::Character *hero = p.hero->mutable_character();
         if (hero->armor() >= v){
             hero->set_armor(hero->armor() - v);
         }
@@ -242,7 +242,7 @@ void Game::damage(Player &p, int i, int v){
         }
     }
     else {
-        cardbook::Minion *minion = p.field[i]->mutable_minion();
+        cardbook::Character *minion = p.field[i]->mutable_character();
         minion->set_hp(minion->hp() - v);
         if (minion->hp() <= 0){
             p.discard.push_back(p.field[i]);
@@ -253,24 +253,27 @@ void Game::damage(Player &p, int i, int v){
 
 void Game::restore(Player &p, int i, int v){
     if (i == -1){
-        cardbook::Hero *hero = p.hero->mutable_hero();
+        cardbook::Character *hero = p.hero->mutable_character();
         hero->set_hp(min(hero->max_hp(), hero->hp() + v));
     }
     else {
-        cardbook::Minion *minion = p.field[i]->mutable_minion();
+        cardbook::Character *minion = p.field[i]->mutable_character();
         minion->set_hp(min(minion->max_hp(), minion->hp() + v));
     }
 }
 
+void Game::turn_buff(Player &p, int i, int v1, int v2){
+}
+
 bool Game::check_valid_attack_target(Player &p, int i){
-    if (i >= (int)p.field.size()){
+    if (i >= (int)p.field.size() || i < -1){
         cerr << "target does not exist" << endl;
         return false;
     }
 
-    if (i == -1 || !p.field[i]->mutable_minion()->taunt()){
+    if (i == -1 || !p.field[i]->mutable_character()->taunt()){
         for (auto m : p.field){
-            if (m->mutable_minion()->taunt()){
+            if (m->mutable_character()->taunt()){
                 cerr << "there are taunt minions" << endl;
                 return false;
             }
@@ -285,38 +288,69 @@ void Game::attack(){
 
     cout << "who attacks: ";
     cin >> i;
-    if (i >= (int)player[0].field.size()){
+    if (i >= (int)player[0].field.size() || i < -1){
         cerr << "character does not exist" << endl;
         return;
     }
 
-    cardbook::Minion *attacker = player[0].field[i]->mutable_minion();
+    if (i == -1){
+        cardbook::Character *attacker = player[0].hero->mutable_character();
 
-    if (!attacker->active()){
-        cerr << "attacker is not active" << endl;
-        return;
+        if (!attacker->active()){
+            cerr << "attacker is not active" << endl;
+            return;
+        }
+        if (attacker->att() <= 0){
+            cerr << "attacker does not have an positive attack" << endl;
+            return;
+        }
+
+        cout << "attack whom: ";
+        cin >> j;
+        if (!check_valid_attack_target(player[1], j))
+            return;
+
+        int d1 = max(0, attacker->att());
+        int d2 = max(0, (j == -1)? 0 : player[1].field[j]->mutable_character()->att());
+
+        damage(player[0], i, d2);
+        damage(player[1], j, d1);
+
+        attacker->set_active(false);
     }
-    if (attacker->att() <= 0){
-        cerr << "attacker does not have positive attack" << endl;
-        return;
+    else {
+        cardbook::Character *attacker = player[0].field[i]->mutable_character();
+
+        if (!attacker->active() && !attacker->rush()){
+            cerr << "attacker is not active" << endl;
+            return;
+        }
+        if (attacker->att() <= 0){
+            cerr << "attacker does not have an positive attack" << endl;
+            return;
+        }
+
+        cout << "attack whom: ";
+        cin >> j;
+        if (!check_valid_attack_target(player[1], j))
+            return;
+        if (!attacker->active() && j == -1){
+            cerr << "can only attack minion when rush" << endl;
+            return;
+        }
+
+        int d1 = max(0, attacker->att());
+        int d2 = max(0, (j == -1)? 0 : player[1].field[j]->mutable_character()->att());
+
+        damage(player[0], i, d2);
+        damage(player[1], j, d1);
+
+        attacker->set_active(false);
     }
-
-    cout << "attack whom: ";
-    cin >> j;
-    if (!check_valid_attack_target(player[1], j))
-        return;
-
-    int d1 = max(0, (i == -1)? player[0].hero->mutable_hero()->att() : attacker->att());
-    int d2 = max(0, (j == -1)? 0 : player[1].field[j]->mutable_minion()->att());
-
-    damage(player[0], i, d2);
-    damage(player[1], j, d1);
-
-    attacker->set_active(false);
 }
 
 void Game::power(){
-    cardbook::Hero *hero = player[0].hero->mutable_hero();
+    cardbook::Character *hero = player[0].hero->mutable_character();
     if (hero->power_used()){
         cerr << "power is already used this turn" << endl;
         return;
@@ -335,24 +369,31 @@ void Game::power(){
     hero->set_power_used(true);
 }
 
+bool Game::choose_target(int &i, int &j){
+    cout << "choose target player (0: self, 1: enemy): ";
+    cin >> i;
+    if (i != 0 && i != 1){
+        cerr << "invalid target" << endl;
+        return false;
+    }
+
+    cout << "choose target character: ";
+    cin >> j;
+    if (j < -1 || j >= (int)player[i].field.size()){
+        cerr << "invalid target" << endl;
+        return false;
+    }
+
+    return true;
+}
+
 bool Game::effect_deal_damage(Target t, int v){
     switch (t){
         case Any_character:
             int i, j;
 
-            cout << "damage player (0: self, 1: enemy): ";
-            cin >> i;
-            if (i != 0 && i != 1){
-                cerr << "invalid target" << endl;
+            if (!choose_target(i, j))
                 return false;
-            }
-
-            cout << "damage character: ";
-            cin >> j;
-            if (j >= (int)player[i].field.size()){
-                cerr << "invalid target" << endl;
-                return false;
-            }
 
             damage(player[i], j, v);
 
@@ -371,19 +412,8 @@ bool Game::effect_restore_health(Target t, int v){
         case Any_character:
             int i, j;
 
-            cout << "restore player (0: self, 1: enemy): ";
-            cin >> i;
-            if (i != 0 && i != 1){
-                cerr << "invalid target" << endl;
+            if (!choose_target(i, j))
                 return false;
-            }
-
-            cout << "restore character: ";
-            cin >> j;
-            if (j >= (int)player[i].field.size()){
-                cerr << "invalid target" << endl;
-                return false;
-            }
 
             restore(player[i], j, v);
 
@@ -399,7 +429,7 @@ bool Game::effect_gain_armor(int i, int v){
     if (i != 0 && i != 1)
         return false;
         
-    cardbook::Hero *hero = player[i].hero->mutable_hero();
+    cardbook::Character *hero = player[i].hero->mutable_character();
     hero->set_armor(hero->armor() + v);
     return true;
 }
@@ -417,6 +447,20 @@ bool Game::effect_draw(int i, int v){
         player[i].draw();
     }
     return true;
+}
+
+bool Game::effect_turn_buff(Target t, int v1, int v2){
+    switch (t){
+        case Any_character:
+            int i, j;
+
+            if (!choose_target(i, j))
+                return false;
+
+            turn_buff(player[i], j, v1, v2);
+
+            break;
+    }
 }
 
 bool Game::effect_gain_mana(int i, int v){
@@ -455,6 +499,9 @@ bool Game::take_effect(cardbook::Effect *eff){
             break;
 
         case cardbook::Effect::Buff:
+            break;
+
+        case cardbook::Effect::Turn_buff:
             break;
 
         case cardbook::Effect::Gain_mana:
